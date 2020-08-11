@@ -25,7 +25,12 @@ namespace PeliculasAPI.Helpers
             CreateMap<PeliculaCreacionDTO, Pelicula>()
                 .ForMember(p => p.Poster, options => options.Ignore()) //Para que el poster sea opcional 
                 .ForMember(pa => pa.PeliculasActores, options => options.MapFrom(MapearPeliculasActores))
-                .ForMember(pg => pg.PeliculasGeneros, options => options.MapFrom(MapearPeliculasGeneros)); 
+                .ForMember(pg => pg.PeliculasGeneros, options => options.MapFrom(MapearPeliculasGeneros));
+
+            CreateMap<Pelicula, PeliculasDetalleDTO>()
+                .ForMember(pg => pg.Generos, options => options.MapFrom(MapPeliculasGeneros))
+                .ForMember(pa => pa.Actores, options => options.MapFrom(MapPeliculasActores));
+
             CreateMap<PeliculaPatchDTO, Pelicula>().ReverseMap();
         }
         private List<PeliculasActores> MapearPeliculasActores(PeliculaCreacionDTO peliculaCreacionDTO, Pelicula pelicula)
@@ -52,8 +57,38 @@ namespace PeliculasAPI.Helpers
                 resultado.Add(new PeliculasGeneros() { GeneroId = id });
             }
             return resultado;
-
-
         }
+
+        private List<GeneroDTO> MapPeliculasGeneros(Pelicula pelicula, PeliculasDetalleDTO peliculasDetalleDTO)
+        {
+            var resultado = new List<GeneroDTO>();
+            if (pelicula.PeliculasGeneros == null)
+            {
+                return resultado;
+            }
+            foreach( var generoPelicula in pelicula.PeliculasGeneros)
+            {
+                resultado.Add(new GeneroDTO() { Id = generoPelicula.GeneroId, Nombre = generoPelicula.Genero.Nombre });
+            }
+            return resultado;
+        }
+
+        private List<ActorPeliculaDetalleDTO> MapPeliculasActores(Pelicula pelicula, PeliculasDetalleDTO peliculasDetalleDTO)
+        {
+            var resultado = new List<ActorPeliculaDetalleDTO>();
+            if (pelicula.PeliculasActores == null) { return resultado; }
+
+            foreach (var actorPelicula in pelicula.PeliculasActores)
+            {
+                resultado.Add(new ActorPeliculaDetalleDTO()
+                {
+                    ActorId = actorPelicula.ActorId,
+                    Personaje = actorPelicula.Personaje,
+                    NombrePersona = actorPelicula.Actor.Nombre
+                });
+            }
+            return resultado;
+        }
+
     }
 }
