@@ -11,25 +11,31 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Linq.Dynamic.Core;
+using Microsoft.Extensions.Logging;
 
 namespace PeliculasAPI.Controllers
 {
     [ApiController]
     [Route("api/peliculas")]
-    public class PeliculasController : ControllerBase
+    public class PeliculasController : CustomBaseController
     {
         private readonly ApplicationDbContext _applicationDbContext;
         private readonly IMapper _mapper;
         private readonly IAlmacenadorArchivos _almacenadorArchivos;
+        private readonly ILogger<PeliculasController> _logger;
         private readonly string contenedor = "peliculas";
 
         public PeliculasController(ApplicationDbContext applicationDbContext,
             IMapper mapper,
-            IAlmacenadorArchivos almacenadorArchivos)
+            IAlmacenadorArchivos almacenadorArchivos,
+            ILogger<PeliculasController> logger)
+            :base(applicationDbContext, mapper)
         {
             this._applicationDbContext = applicationDbContext;
             this._mapper = mapper;
             this._almacenadorArchivos = almacenadorArchivos;
+            this._logger = logger;
         }
 
         [HttpGet]
@@ -79,6 +85,20 @@ namespace PeliculasAPI.Controllers
                 peliculasQueryable = peliculasQueryable
                     .Where(p => p.PeliculasGeneros.Select(pg => pg.GeneroId)
                     .Contains(filtroPeliculasDTO.GeneroId));
+            }
+            if (!string.IsNullOrEmpty(filtroPeliculasDTO.CampoOrdenar))
+            {
+                var tipoOrden = filtroPeliculasDTO.OrdenAscendente ? "ascending" : "descending";
+
+                try
+                {
+                    peliculasQueryable = peliculasQueryable.OrderBy($"{filtroPeliculasDTO.CampoOrdenar} {tipoOrden}");
+                } 
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex.Message, ex);
+                }
+
             }
             await HttpContext.InsertarParametrosPaginacion(peliculasQueryable,
                 filtroPeliculasDTO.CantidadRegistrosPorPagina);
@@ -172,49 +192,13 @@ namespace PeliculasAPI.Controllers
         [HttpPatch("{id}")]
         public async Task<ActionResult> Patch(int id, [FromBody] JsonPatchDocument<PeliculaPatchDTO> jsonPatchDocument)
         {
-            if (jsonPatchDocument == null)
-            {
-                return BadRequest();
-            }
-
-            var entidadDB = await _applicationDbContext.Peliculas.FirstOrDefaultAsync(p => p.Id == id);
-            if (entidadDB == null)
-            {
-                return NotFound();
-            }
-
-            var entidadDTO = _mapper.Map<PeliculaPatchDTO>(entidadDB);
-            //ModelState => Microsoft.AspNetCore.Mvc.NewtonsoftJson
-            jsonPatchDocument.ApplyTo(entidadDTO, ModelState);
-
-            var esValido = TryValidateModel(entidadDTO);
-            if (!esValido)
-            {
-                return BadRequest(ModelState);
-            }
-
-            _mapper.Map(entidadDTO, entidadDB);
-
-            await _applicationDbContext.SaveChangesAsync();
-            return NoContent();
+            return await Patch<Pelicula, PeliculaPatchDTO>(id, jsonPatchDocument);
         }
 
         [HttpDelete("{id}")]
         public async Task<ActionResult> Delete(int id)
         {
-            var existe = await _applicationDbContext.Peliculas.AnyAsync(p => p.Id == id);
-
-            if (!existe)
-            {
-                return NotFound();
-            }
-
-            _applicationDbContext.Remove(new Pelicula() { Id = id });
-            await _applicationDbContext.SaveChangesAsync();
-
-            return NoContent();
+            return await Delete<Pelicula>(id);
         }
-
-
     }
 }
