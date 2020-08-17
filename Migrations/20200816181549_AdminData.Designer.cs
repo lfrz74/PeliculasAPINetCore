@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 using PeliculasAPI;
@@ -10,9 +11,10 @@ using PeliculasAPI;
 namespace PeliculasAPI.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20200816181549_AdminData")]
+    partial class AdminData
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -333,34 +335,6 @@ namespace PeliculasAPI.Migrations
                     b.ToTable("PeliculasSalasDeCines");
                 });
 
-            modelBuilder.Entity("PeliculasAPI.Entidades.Review", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
-                    b.Property<string>("Comentario")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("PeliculaId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Puntuacion")
-                        .HasColumnType("int");
-
-                    b.Property<string>("UsuarioId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PeliculaId");
-
-                    b.HasIndex("UsuarioId");
-
-                    b.ToTable("Reviews");
-                });
-
             modelBuilder.Entity("PeliculasAPI.Entidades.SalaDeCine", b =>
                 {
                     b.Property<int>("Id")
@@ -475,19 +449,6 @@ namespace PeliculasAPI.Migrations
                         .HasForeignKey("SalaDeCineId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("PeliculasAPI.Entidades.Review", b =>
-                {
-                    b.HasOne("PeliculasAPI.Entidades.Pelicula", "Pelicula")
-                        .WithMany()
-                        .HasForeignKey("PeliculaId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", "Usuario")
-                        .WithMany()
-                        .HasForeignKey("UsuarioId");
                 });
 #pragma warning restore 612, 618
         }

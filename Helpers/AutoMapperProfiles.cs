@@ -1,5 +1,8 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
+using NetTopologySuite;
+using NetTopologySuite.Geometries;
 using PeliculasAPI.DTOs;
 using PeliculasAPI.Entidades;
 using System;
@@ -11,7 +14,7 @@ namespace PeliculasAPI.Helpers
 {
     public class AutoMapperProfiles: Profile
     {
-        public AutoMapperProfiles()
+        public AutoMapperProfiles(GeometryFactory geometryFactory)
         {
             CreateMap<Genero, GeneroDTO>().ReverseMap();
             CreateMap<GeneroCreacionDTO, Genero>();
@@ -32,6 +35,20 @@ namespace PeliculasAPI.Helpers
                 .ForMember(pa => pa.Actores, options => options.MapFrom(MapPeliculasActores));
 
             CreateMap<PeliculaPatchDTO, Pelicula>().ReverseMap();
+
+            CreateMap<SalaDeCine, SalaDeCineDTO>()
+                .ForMember(lat => lat.Latitud, lat => lat.MapFrom( y => y.Ubicacion.Y))
+                .ForMember(lon => lon.Longitud, lon => lon.MapFrom( x => x.Ubicacion.X));
+
+            CreateMap<SalaDeCineDTO, SalaDeCine>()
+                .ForMember(u => u.Ubicacion, u => u.MapFrom(y =>
+               geometryFactory.CreatePoint(new Coordinate(y.Longitud, y.Latitud))));
+
+            CreateMap<SalaDeCineCreacionDTO, SalaDeCine>()
+                .ForMember(u => u.Ubicacion, u => u.MapFrom(y =>
+               geometryFactory.CreatePoint(new Coordinate(y.Longitud, y.Latitud))));
+
+            CreateMap<IdentityUser, UsuarioDTO>();
         }
         private List<PeliculasActores> MapearPeliculasActores(PeliculaCreacionDTO peliculaCreacionDTO, Pelicula pelicula)
         {
