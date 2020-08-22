@@ -49,6 +49,12 @@ namespace PeliculasAPI.Helpers
                geometryFactory.CreatePoint(new Coordinate(y.Longitud, y.Latitud))));
 
             CreateMap<IdentityUser, UsuarioDTO>();
+
+            CreateMap<Review, ReviewDTO>()
+                .ForMember(r => r.NombreUsuario, r => r.MapFrom(r => r.Usuario.UserName));
+
+            CreateMap<ReviewDTO, Review>();
+            CreateMap<ReviewCreacionDTO, Review>();
         }
         private List<PeliculasActores> MapearPeliculasActores(PeliculaCreacionDTO peliculaCreacionDTO, Pelicula pelicula)
         {

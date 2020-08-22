@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PeliculasAPI.DTOs;
 using PeliculasAPI.Entidades;
+using PeliculasAPI.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,7 +15,8 @@ using System.Threading.Tasks;
 namespace PeliculasAPI.Controllers
 {
     // api/peliculas/3/reviews
-    [Route("api/peliculas/{peliculaId:int}/reviews")]
+    [Route("api/peliculas/{peliculaId:int}/reviews/")]
+    [ServiceFilter(typeof(PeliculaExisteAttribute))]
     public class ReviewController: CustomBaseController
     {
         private readonly ApplicationDbContext _context;
@@ -41,19 +43,13 @@ namespace PeliculasAPI.Controllers
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<ActionResult> Post(int peliculaId, [FromBody] ReviewCreacionDTO reviewCreacionDTO)
         {
-            var existePelicula = await _context.Peliculas.AnyAsync(p => p.Id == peliculaId);
-            if (!existePelicula)
-            {
-                return NotFound();
-            }
-
             var usuarioId = HttpContext.User.Claims.FirstOrDefault(u => u.Type == ClaimTypes.NameIdentifier).Value;
 
             var reviewExiste = 
                 await _context.Reviews.AnyAsync(r => r.PeliculaId == peliculaId && r.UsuarioId == usuarioId);
             if (reviewExiste)
             {
-                return BadRequest("El usuario ya ha escriot un review de esta película..!");
+                return BadRequest("El usuario ya ha escrito un review de esta película..!");
             }
 
             var review = _mapper.Map<Review>(reviewCreacionDTO);
@@ -64,6 +60,40 @@ namespace PeliculasAPI.Controllers
             await _context.SaveChangesAsync();
             return NoContent();
         }
+        [HttpPut("{reviewId:int}")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<ActionResult> Put(int peliculaId, int reviewId, [FromBody] ReviewCreacionDTO reviewCreacionDTO)
+        {
+            var reviewDB = await _context.Reviews.FirstOrDefaultAsync(r => r.Id == reviewId);
 
+            if (reviewDB == null) { return NotFound(); }
+
+            var usuarioId = HttpContext.User.Claims.FirstOrDefault(u => u.Type == ClaimTypes.NameIdentifier).Value;
+
+            if (reviewDB.UsuarioId != usuarioId) 
+            { 
+                return BadRequest("No tiene permisos de editar este review"); 
+            }
+
+            reviewDB = _mapper.Map(reviewCreacionDTO, reviewDB);
+
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+
+        [HttpDelete("{reviewId:int}")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<ActionResult> Delete(int reviewId)
+        {
+            var reviewDB = await _context.Reviews.FirstOrDefaultAsync(r => r.Id == reviewId);
+            if (reviewDB == null) { return NotFound(); }
+
+            var usuarioId = HttpContext.User.Claims.FirstOrDefault(u => u.Type == ClaimTypes.NameIdentifier).Value;
+            if (reviewDB.UsuarioId != usuarioId) { return Forbid(); }
+
+            _context.Remove(reviewDB);
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
     }
 }
