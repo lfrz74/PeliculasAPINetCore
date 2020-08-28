@@ -50,7 +50,11 @@ namespace PeliculasAPI
             );
             services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(Configuration.GetConnectionString("devconn"),
                 sqlServerOptions => sqlServerOptions.UseNetTopologySuite()));
-            services.AddControllers().AddNewtonsoftJson();
+            
+            
+            services.AddControllers(options => {
+                options.Filters.Add(typeof(FiltroErrores)); //Errores generales
+            }).AddNewtonsoftJson();
 
             services.AddIdentity<IdentityUser, IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>()
